@@ -36,8 +36,6 @@ import logging.config
 from collections import OrderedDict
 from functools import reduce
 
-sys.path[:0] = [os.path.join(os.path.dirname(__file__), '..')]
-
 from bindingtester import FDB_API_VERSION
 from bindingtester import Result
 
@@ -49,6 +47,7 @@ from bindingtester.known_testers import Tester
 import fdb
 import fdb.tuple
 
+sys.path[:0] = [os.path.join(os.path.dirname(__file__), '..')]
 
 API_VERSIONS = [
     13, 14, 16, 21, 22, 23,
@@ -58,7 +57,6 @@ API_VERSIONS = [
     600, 610, 620, 630,
     700, 710, 720,
 ]
-
 
 fdb.api_version(FDB_API_VERSION)
 
@@ -85,7 +83,8 @@ class ResultSet(object):
         if len(self.tester_results) == 1:
             return (0, False)
 
-        util.get_logger().info('Comparing results from \'%s\'...' % repr(util.subspace_to_tuple(self.specification.subspace)))
+        util.get_logger().info(
+            'Comparing results from \'%s\'...' % repr(util.subspace_to_tuple(self.specification.subspace)))
 
         num_errors = 0
         has_filtered_error = False
@@ -129,7 +128,8 @@ class ResultSet(object):
                 has_filtered_error = True
 
             # The result is considered correct if every tester produced a value and all the values meet the matching criteria
-            if len(results) < len(all_results) or not all(result_list[0].matches(r, self.specification) for r in result_list):
+            if len(results) < len(all_results) or not all(
+                    result_list[0].matches(r, self.specification) for r in result_list):
                 util.get_logger().error('\nIncorrect result: \n%s' % result_str)
                 num_errors += 1
             else:
@@ -143,7 +143,8 @@ class ResultSet(object):
         return (num_errors, has_filtered_error)
 
 
-def choose_api_version(selected_api_version, tester_min_version, tester_max_version, test_min_version, test_max_version):
+def choose_api_version(selected_api_version, tester_min_version, tester_max_version, test_min_version,
+                       test_max_version):
     if selected_api_version is not None:
         if selected_api_version < tester_min_version or selected_api_version > tester_max_version:
             raise Exception('Not all testers support the API version %d (min=%d, max=%d)' %
@@ -160,7 +161,8 @@ def choose_api_version(selected_api_version, tester_min_version, tester_max_vers
         if min_version > max_version:
             raise Exception(
                 'Not all testers support the API versions required by the specified test'
-                '(tester: min=%d, max=%d; test: min=%d, max=%d)' % (tester_min_version, tester_max_version, test_min_version, test_max_version))
+                '(tester: min=%d, max=%d; test: min=%d, max=%d)' % (
+                    tester_min_version, tester_max_version, test_min_version, test_max_version))
 
         if random.random() < 0.7:
             api_version = max_version
@@ -209,10 +211,13 @@ class TestRunner(object):
             raise Exception('Not all testers support concurrency')
 
         # Test types should be intersection of all tester supported types
-        self.args.types = list(reduce(lambda t1, t2: filter(t1.__contains__, t2), map(lambda tester: tester.types, self.testers)))
+        self.args.types = list(
+            reduce(lambda t1, t2: filter(t1.__contains__, t2), map(lambda tester: tester.types, self.testers)))
 
-        self.args.no_directory_snapshot_ops = self.args.no_directory_snapshot_ops or any([not tester.directory_snapshot_ops_enabled for tester in self.testers])
-        self.args.no_tenants = self.args.no_tenants or any([not tester.tenants_enabled for tester in self.testers]) or self.args.api_version < 710
+        self.args.no_directory_snapshot_ops = self.args.no_directory_snapshot_ops or any(
+            [not tester.directory_snapshot_ops_enabled for tester in self.testers])
+        self.args.no_tenants = self.args.no_tenants or any(
+            [not tester.tenants_enabled for tester in self.testers]) or self.args.api_version < 710
 
     def print_test(self):
         test_instructions = self._generate_test()
@@ -248,8 +253,9 @@ class TestRunner(object):
             self.test.pre_run(self.db, self.args)
             return_code = self._run_tester(tester)
             if return_code != 0:
-                util.get_logger().error('Test of type %s failed to complete successfully with random seed %d and %d operations\n' %
-                                        (self.args.test_name, self.args.seed, self.args.num_ops))
+                util.get_logger().error(
+                    'Test of type %s failed to complete successfully with random seed %d and %d operations\n' %
+                    (self.args.test_name, self.args.seed, self.args.num_ops))
                 return 2
 
             tester_errors[tester] = self.test.validate(self.db, self.args)
@@ -258,7 +264,8 @@ class TestRunner(object):
                 tester_results[spec.subspace].add(tester.name, self._get_results(spec.subspace))
 
         return_code = self._validate_results(tester_errors, tester_results)
-        util.get_logger().info('Completed %s test with random seed %d and %d operations\n' % (self.args.test_name, self.args.seed, self.args.num_ops))
+        util.get_logger().info('Completed %s test with random seed %d and %d operations\n' % (
+            self.args.test_name, self.args.seed, self.args.num_ops))
 
         return return_code
 
@@ -274,7 +281,8 @@ class TestRunner(object):
 
         if self.args.concurrency == 1:
             self.test.setup(self.args)
-            test_instructions = {fdb.Subspace((bytes(self.args.instruction_prefix, 'utf-8'),)): self.test.generate(self.args, 0)}
+            test_instructions = {
+                fdb.Subspace((bytes(self.args.instruction_prefix, 'utf-8'),)): self.test.generate(self.args, 0)}
         else:
             test_instructions = {}
             main_thread = InstructionSet()
@@ -298,7 +306,7 @@ class TestRunner(object):
             tr = self.db.create_transaction()
             try:
                 tr.options.set_special_key_space_enable_writes()
-                del tr[b'\xff\xff/management/tenant/map/' : b'\xff\xff/management/tenant/map0']
+                del tr[b'\xff\xff/management/tenant/map/': b'\xff\xff/management/tenant/map0']
                 tr.commit().wait()
                 break
             except fdb.FDBError as e:
@@ -376,8 +384,8 @@ class TestRunner(object):
                 for i, error in enumerate(errors):
                     util.get_logger().error('  %d. %s' % (i + 1, error))
 
-        log_message = '\nTest with seed %d and concurrency %d had %d incorrect result(s) and %d error(s) at API version %d' %\
-            (self.args.seed, self.args.concurrency, num_incorrect, num_errors, self.args.api_version)
+        log_message = '\nTest with seed %d and concurrency %d had %d incorrect result(s) and %d error(s) at API version %d' % \
+                      (self.args.seed, self.args.concurrency, num_incorrect, num_errors, self.args.api_version)
         if num_errors == 0 and (num_incorrect == 0 or has_filtered_error):
             util.get_logger().info(log_message)
             if has_filtered_error:
@@ -406,11 +414,13 @@ def bisect(test_runner, args):
 
                 return 0
             elif upper_bound < args.num_ops:
-                util.get_logger().error('Error finding minimal failing test for seed %d. The failure may not be deterministic' % args.seed)
+                util.get_logger().error(
+                    'Error finding minimal failing test for seed %d. The failure may not be deterministic' % args.seed)
                 return 1
             else:
-                util.get_logger().error('No failing test found for seed %d with %d ops. Try specifying a larger --num-ops parameter.'
-                                        % (args.seed, args.num_ops))
+                util.get_logger().error(
+                    'No failing test found for seed %d with %d ops. Try specifying a larger --num-ops parameter.'
+                    % (args.seed, args.num_ops))
                 return 0
 
         elif result == 0:
@@ -418,7 +428,8 @@ def bisect(test_runner, args):
             lower_bound = test_runner.args.num_ops + 1
 
         else:
-            util.get_logger().info('Test with %d operations failed with error code %d\n' % (test_runner.args.num_ops, result))
+            util.get_logger().info(
+                'Test with %d operations failed with error code %d\n' % (test_runner.args.num_ops, result))
             upper_bound = test_runner.args.num_ops
 
 
@@ -434,13 +445,17 @@ def parse_args(argv):
     parser.add_argument('--print-test', action='store_true',
                         help='Instead of running a test, prints the set of instructions generated for that test. Unless --all is specified, all '
                              'setup, finalization, PUSH, and SWAP instructions will be excluded.')
-    parser.add_argument('--all', dest='print_all', action='store_true', help='Causes --print-test to print all instructions.')
+    parser.add_argument('--all', dest='print_all', action='store_true',
+                        help='Causes --print-test to print all instructions.')
     parser.add_argument('--bisect', action='store_true',
                         help='Run the specified test varying the number of operations until a minimal failing test is found. Does not work for '
                              'concurrent tests.')
-    parser.add_argument('--insert-only', action='store_true', help='Insert the test instructions into the database, but do not run it.')
-    parser.add_argument('--concurrency', type=int, default=1, help='Number of concurrent test threads to run. (default = 1).')
-    parser.add_argument('--num-ops', type=int, default=100, help='The number of operations to generate per thread (default = 100)')
+    parser.add_argument('--insert-only', action='store_true',
+                        help='Insert the test instructions into the database, but do not run it.')
+    parser.add_argument('--concurrency', type=int, default=1,
+                        help='Number of concurrent test threads to run. (default = 1).')
+    parser.add_argument('--num-ops', type=int, default=100,
+                        help='The number of operations to generate per thread (default = 100)')
     parser.add_argument('--seed', type=int, help='The random seed to use for generating the test')
     parser.add_argument('--max-int-bits', type=int, default=None,
                         help='Maximum number of bits to use for int types in testers. By default, the largest value supported by the testers being '
@@ -448,8 +463,10 @@ def parse_args(argv):
     parser.add_argument('--api-version', default=None, type=int,
                         help='The API version that the testers should use. Not supported in scripted mode. (default = random version supported by '
                              'all testers)')
-    parser.add_argument('--cluster-file', type=str, default=None, help='The cluster file for the cluster being connected to. (default None)')
-    parser.add_argument('--timeout', type=int, default=600, help='The timeout in seconds for running each individual tester. (default 600)')
+    parser.add_argument('--cluster-file', type=str, default=None,
+                        help='The cluster file for the cluster being connected to. (default None)')
+    parser.add_argument('--timeout', type=int, default=600,
+                        help='The timeout in seconds for running each individual tester. (default 600)')
     parser.add_argument('--enable-client-trace-logging', nargs='?', type=str, default=None, const='.',
                         help='Enables trace file output. This flag takes an optional argument specifying the output directory (default = \'.\').')
     parser.add_argument('--instruction-prefix', type=str, default='test_spec',
@@ -459,13 +476,16 @@ def parse_args(argv):
                              '(default=\'tester_output\')')
 
     parser.add_argument('--logging-level', type=str, default='INFO',
-                        choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'], help='Specifies the level of detail in the tester output (default=\'INFO\').')
+                        choices=['ERROR', 'WARNING', 'INFO', 'DEBUG'],
+                        help='Specifies the level of detail in the tester output (default=\'INFO\').')
 
     # SOMEDAY: this applies only to the scripted test. Should we invoke test files specifically (as in circus),
     # or invoke them here and allow tests to add arguments?
-    parser.add_argument('--no-threads', action='store_true', help='Disables the START_THREAD instruction in the scripted test.')
-    
-    parser.add_argument('--no-directory-snapshot-ops', action='store_true', help='Disables snapshot operations for directory instructions.')
+    parser.add_argument('--no-threads', action='store_true',
+                        help='Disables the START_THREAD instruction in the scripted test.')
+
+    parser.add_argument('--no-directory-snapshot-ops', action='store_true',
+                        help='Disables snapshot operations for directory instructions.')
 
     parser.add_argument('--no-tenants', action='store_true', help='Disables tenant operations.')
 
