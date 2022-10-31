@@ -484,8 +484,7 @@ def parse_args(argv):
     parser.add_argument('--no-threads', action='store_true',
                         help='Disables the START_THREAD instruction in the scripted test.')
 
-    parser.add_argument('--no-directory-snapshot-ops', action='store_true',
-                        help='Disables snapshot operations for directory instructions.')
+    parser.add_argument('--no-directory-snapshot-ops', action='store_true', help='Disables snapshot operations for directory instructions.')
 
     parser.add_argument('--no-tenants', action='store_true', help='Disables tenant operations.')
 
